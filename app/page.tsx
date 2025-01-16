@@ -14,7 +14,7 @@ export default function Home() {
           name="description"
           content="Portfolio di Manfredi Rizza, ex atleta e sviluppatore web."
         />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/u_spiddu_logo.ico" />
       </Head>
 
       <main className="text-center p-6 w-full max-w-2xl">
