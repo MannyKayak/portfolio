@@ -68,13 +68,13 @@ export default function Home() {
         {/* Bottoni di navigazione */}
         <div className="mt-6 flex space-x-4">
           <Link
-            href="/"
+            href="/projects"
             className="px-6 py-3 border-2 border-white text-white rounded-lg hover:bg-white hover:text-black transition"
           >
             My Projects
           </Link>
           <Link
-            href="/"
+            href="/aboutMe"
             className="px-6 py-3 border-2 border-white text-white rounded-lg hover:bg-white hover:text-black transition"
           >
             About Me
