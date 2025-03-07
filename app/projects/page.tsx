@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { FaHome } from "react-icons/fa";
 
-const Page = () => {
+const Projects = () => {
   return (
     <div>
       <Link
@@ -79,4 +79,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default Projects;

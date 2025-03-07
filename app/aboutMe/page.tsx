@@ -1,15 +1,33 @@
+"use client";
 import Image from "next/image";
 import Link from "next/link";
 import { FaHome } from "react-icons/fa";
+import { entry_zones } from "../utils/Boundaries";
 
 export default function AboutMe() {
+  const exit = entry_zones.find((item) => item.page === "aboutMe");
+  const handleReturnHome = () => {
+    // throw return event
+    const returnHome = new CustomEvent("returnHome", {
+      detail: {
+        page: "aboutMe",
+        exitPosition: exit
+          ? { x: exit.position.x, y: exit.position.y + 40 }
+          : { x: 1152, y: 640 },
+      },
+    });
+    window.dispatchEvent(returnHome);
+  };
   return (
     <div className="container mx-auto px-4 py-8 ">
       <Link
         href={"/"}
         className="fixed bottom-10 right-10 bg-slate-400 p-5 rounded-full shadow-md"
       >
-        <FaHome className=" flex text-white text-lg size-10" />
+        <FaHome
+          onClick={handleReturnHome}
+          className=" flex text-white text-lg size-10"
+        />
       </Link>
       {/* Header */}
       <header className="text-center mb-12">
