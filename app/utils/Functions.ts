@@ -1,5 +1,5 @@
 import { Boundary } from "@/classes";
-import { collisions } from "./Boundaries";
+import { collisions } from "../data/Collisions";
 
 export function rectangularCollision({
   rectangle1,
@@ -194,3 +194,13 @@ export function generateBoundariesMap(mapInfo: {
   });
   return boundaries;
 }
+
+export const handleReturnHome = (pageName: string) => {
+  // throw return event
+  const returnHome = new CustomEvent("returnHome", {
+    detail: {
+      page: pageName,
+    },
+  });
+  window.dispatchEvent(returnHome);
+};

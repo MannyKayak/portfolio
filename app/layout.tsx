@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 
 import "./globals.css";
+import { GameProvider } from "./context/GameContext";
 
 const gameBoyFont = localFont({
   variable: "--font-gameboy",
@@ -22,6 +23,10 @@ export const metadata: Metadata = {
   icons: ["u_spiddu_logo.ico"],
 };
 
+export interface User {
+  username: string;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={gameBoyFont.className}>
-      <body className={`antialiased`}>{children}</body>
+      <body className={`antialiased`}>
+        <GameProvider>{children}</GameProvider>
+      </body>
     </html>
   );
 }

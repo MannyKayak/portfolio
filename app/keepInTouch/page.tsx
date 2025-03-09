@@ -5,27 +5,13 @@ import FormComponent from "../../components/FormComponent";
 import { FaPaperPlane, FaHome } from "react-icons/fa";
 import Link from "next/link";
 
-import { entry_zones } from "../utils/Boundaries";
+import { handleReturnHome } from "../utils/Functions";
 
 const KeepInTouch = () => {
-  const exit = entry_zones.find((item) => item.page === "keepInTouch");
-  const handleReturnHome = () => {
-    console.log("return home");
-    // throw return event
-    const returnHome = new CustomEvent("returnHome", {
-      detail: {
-        page: "keepInTouch",
-        exitPosition: exit
-          ? { x: exit.position.x, y: exit.position.y + 40 }
-          : { x: 2112, y: 744 },
-      },
-    });
-    window.dispatchEvent(returnHome);
-  };
   return (
     <div className="flex flex-col pt-8 min-h-screen bg-slate-600 justify-center items-center">
       <h3 className="text-2xl font-semibold text-white mb-2">Keep in touch</h3>
-      <div onClick={handleReturnHome}>
+      <div onClick={() => handleReturnHome("keepInTouch")}>
         <Link
           href={"/"}
           className="absolute bottom-20 right-40 bg-slate-400 p-5 rounded-full shadow-md"

@@ -2,15 +2,20 @@ import React from "react";
 import Link from "next/link";
 import { FaHome } from "react-icons/fa";
 
+import { handleReturnHome } from "../utils/Functions";
+
 const Projects = () => {
   return (
     <div>
-      <Link
-        href={"/"}
-        className="fixed bottom-10 right-20 bg-slate-400 p-5 rounded-full shadow-md"
-      >
-        <FaHome className=" flex text-white text-lg size-10" />
-      </Link>
+      <div onClick={() => handleReturnHome("projects")}>
+        <Link
+          href={"/"}
+          className="fixed bottom-10 right-20 bg-slate-400 p-5 rounded-full shadow-md"
+        >
+          <FaHome className=" flex text-white text-lg size-10" />
+        </Link>
+      </div>
+
       <div className="container mx-auto py-8 px-4">
         {/* Griglia asimmetrica: su schermi medi e superiori abbiamo 3 colonne */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

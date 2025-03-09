@@ -3,9 +3,10 @@ import { Boundary } from "@/classes";
 import { entry_zones } from "@/app/utils/Boundaries";
 
 export default class Player {
+  // static values for player movement
   static X_VELOCITY: number = 250;
   static Y_VELOCITY: number = 250;
-
+  // player properties
   x: number;
   y: number;
   width: number = 64;
@@ -14,8 +15,12 @@ export default class Player {
   image: HTMLImageElement = new Image();
   center: { x: number; y: number };
   loaded: boolean = false;
+
+  // animation time props
   currentFrame: number = 0;
   elapsedTime: number = 0;
+
+  // properties for player movement
   sprites: {
     walkDown: {
       x: number;
@@ -58,23 +63,26 @@ export default class Player {
     height: number;
     frameCount: number;
   };
-
   hitbox: {
     position: { x: number; y: number };
     width: number;
     height: number;
     show: boolean;
   };
-
   isMovementBlocked: boolean;
   walkDirection: string;
 
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
+  constructor(initialPosition: {
+    x: number;
+    y: number;
+    direction: string;
+    frame: number;
+  }) {
+    this.x = initialPosition.x;
+    this.y = initialPosition.y;
 
     this.isMovementBlocked = false;
-    this.walkDirection = "down";
+    this.walkDirection = initialPosition.direction;
 
     this.image.onload = () => {
       this.loaded = true;
@@ -86,15 +94,28 @@ export default class Player {
       y: this.y + this.height / 2,
     };
 
-    this.currentSprite = this.sprites.walkDown;
+    switch (this.walkDirection) {
+      case "down":
+        this.currentSprite = this.sprites.walkDown;
+        break;
+      case "up":
+        this.currentSprite = this.sprites.walkUp;
+        break;
+      case "left":
+        this.currentSprite = this.sprites.walkLeft;
+        break;
+      case "right":
+        this.currentSprite = this.sprites.walkRight;
+        break;
+      default:
+        this.currentSprite = this.sprites.walkDown;
+    }
     this.hitbox = {
       position: { x: this.x, y: this.y },
       width: this.width * 0.8,
       height: this.height * 0.9,
       show: true,
     };
-
-    this.listenToGameEvents();
   }
 
   // function to check the passage through the entrance of a building use rectangularCollision to check
@@ -115,6 +136,7 @@ export default class Player {
   updateHorizontalPosition(deltaTime: number) {
     this.x += this.velocity.x * deltaTime;
   }
+
   updateVerticalPosition(deltaTime: number) {
     this.y += this.velocity.y * deltaTime;
   }
@@ -198,45 +220,6 @@ export default class Player {
     }
   }
 
-  listenToGameEvents() {
-    const handleBoxClosed = (e: CustomEvent) => {
-      this.isMovementBlocked = false;
-      switch (this.walkDirection) {
-        case "left":
-          // player shift to the right at same y
-          this.x = this.x + this.width / 2;
-          this.currentSprite = this.sprites.walkRight;
-          this.currentSprite.frameCount = 3;
-          break;
-        case "right":
-          this.x = this.x - this.width / 2;
-          this.currentSprite = this.sprites.walkLeft;
-          this.currentSprite.frameCount = 2;
-          break;
-        case "up":
-          this.y = this.y + this.height / 2;
-          // spawn it facing the opposite direction
-          this.currentSprite = this.sprites.walkDown;
-          this.currentSprite.frameCount = 0;
-          break;
-        case "down":
-          this.y = this.y - this.height / 2;
-          this.currentSprite = this.sprites.walkUp;
-          this.currentSprite.frameCount = 1;
-          break;
-      }
-    };
-
-    const handleReturnHome = (e: CustomEvent) => {
-      this.isMovementBlocked = false;
-      this.x = e.detail.exitPosition.x;
-      this.y = e.detail.exitPosition.y;
-    };
-
-    window.addEventListener("boxClosing", handleBoxClosed as EventListener);
-    window.addEventListener("returnHome", handleReturnHome as EventListener);
-  }
-
   update(deltaTime: number, boundaries: Boundary[]) {
     if (this.isMovementBlocked) return;
     // Update player position based on keyboard input
@@ -286,7 +269,7 @@ export default class Player {
         detail: {
           page: buildingObj.page,
           message: buildingObj.message,
-          exitPosition: buildingObj.position,
+          respawnPosition: buildingObj.respawnPosition,
         },
       });
       window.dispatchEvent(entranceEvent);
