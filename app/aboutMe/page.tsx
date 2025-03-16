@@ -2,18 +2,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FaHome } from "react-icons/fa";
-import { entry_zones } from "../utils/Boundaries";
 
 export default function AboutMe() {
-  const exit = entry_zones.find((item) => item.page === "aboutMe");
   const handleReturnHome = () => {
     // throw return event
     const returnHome = new CustomEvent("returnHome", {
       detail: {
-        page: "aboutMe",
-        exitPosition: exit
-          ? { x: exit.position.x, y: exit.position.y + 40 }
-          : { x: 1152, y: 640 },
+        fromPage: "aboutMe",
       },
     });
     window.dispatchEvent(returnHome);

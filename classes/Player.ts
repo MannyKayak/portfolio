@@ -1,6 +1,6 @@
 import { rectangularCollision } from "@/app/utils/Functions";
 import { Boundary } from "@/classes";
-import { entry_zones } from "@/app/utils/Boundaries";
+import { entry_zones, panel_positions } from "@/app/utils/Boundaries";
 
 export default class Player {
   // static values for player movement
@@ -87,7 +87,7 @@ export default class Player {
     this.image.onload = () => {
       this.loaded = true;
     };
-    this.image.src = "/images/assets/player_walk_scaled.png";
+    this.image.src = "/images/assets/player.png";
 
     this.center = {
       x: this.x + this.width / 2,
@@ -114,7 +114,7 @@ export default class Player {
       position: { x: this.x, y: this.y },
       width: this.width * 0.8,
       height: this.height * 0.9,
-      show: true,
+      show: false,
     };
   }
 
@@ -220,7 +220,29 @@ export default class Player {
     }
   }
 
-  update(deltaTime: number, boundaries: Boundary[]) {
+  detectPanelCollision(panels: Boundary[]) {
+    for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
+      if (
+        rectangularCollision({ rectangle1: this.hitbox, rectangle2: panel })
+      ) {
+        const activatedPanel = panel_positions.find(
+          (item) => item.x === panel.position.x && item.y === panel.position.y
+        );
+        panel.name = activatedPanel?.name || "panel";
+        return { collision: true, panel: panel.name };
+      }
+    }
+
+    return { collision: false, panel: "" };
+  }
+
+  update(
+    deltaTime: number,
+    boundaries: Boundary[],
+    panels: Boundary[],
+    staticNpgMap: Boundary[]
+  ) {
     if (this.isMovementBlocked) return;
     // Update player position based on keyboard input
     this.center = {
@@ -258,9 +280,42 @@ export default class Player {
       this.y = previousY;
     }
 
+    // interaction with npc
+    if (this.detectHorizontalCollision(staticNpgMap)) {
+      this.x = previousX;
+      this.velocity.x = 0;
+      this.currentFrame = 0;
+      this.emitInteractionEvent({
+        type: "horizontal",
+        direction: "right",
+        method: "collision",
+      });
+    }
+    if (this.detectVerticalCollision(staticNpgMap)) {
+      this.y = previousY;
+      this.velocity.y = 0;
+      this.currentFrame = 0;
+      this.emitInteractionEvent({
+        type: "vertical",
+        direction: "up",
+        method: "collision",
+      });
+    }
+    // check if player collide with a panel
+    const panelCollisionObj = this.detectPanelCollision(panels);
+    if (panelCollisionObj.collision) {
+      // launch panel description event
+      const panelActivation = new CustomEvent("panelActivation", {
+        detail: {
+          panel: panelCollisionObj.panel,
+        },
+      });
+      window.dispatchEvent(panelActivation);
+    }
+
     const buildingObj = this.checkBuildEntrance();
     // once the user enter a building a popup should be showned and user should be blocked
-    if (buildingObj != null) {
+    if (buildingObj != null && buildingObj.page != "kayakGame") {
       // block user movements
       this.isMovementBlocked = true;
 
@@ -273,18 +328,27 @@ export default class Player {
         },
       });
       window.dispatchEvent(entranceEvent);
+    } else if (buildingObj?.page === "kayakGame") {
+      console.log("todo enter in kayak game");
     }
   }
+
+  emitInteractionEvent = (interactionDetails: InteractionDetails) => {
+    const npcInteraction = new CustomEvent("npcInteraction", {
+      detail: interactionDetails,
+    });
+    window.dispatchEvent(npcInteraction);
+  };
 
   draw(ctx: CanvasRenderingContext2D) {
     if (!this.loaded) return;
 
     ctx.drawImage(
       this.image,
-      this.currentSprite.x,
+      this.currentSprite.x + 1,
       this.currentSprite.height * this.currentFrame + 1,
-      this.currentSprite.width,
-      this.currentSprite.height,
+      this.currentSprite.width - 1,
+      this.currentSprite.height - 2,
       this.x,
       this.y,
       this.width,
@@ -301,5 +365,9 @@ export default class Player {
         this.hitbox.height
       );
     }
+  }
+
+  clear(ctx: CanvasRenderingContext2D) {
+    ctx.clearRect(0, 0, this.width, this.height);
   }
 }

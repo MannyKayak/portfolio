@@ -1,5 +1,4 @@
 import { Boundary } from "@/classes";
-import { collisions } from "../data/Collisions";
 
 export function rectangularCollision({
   rectangle1,
@@ -24,17 +23,20 @@ export function rectangularCollision({
   );
 }
 
-export function generateBoundariesMap(mapInfo: {
-  cols: number;
-  rows: number;
-  tileWidth: number;
-  tileHeight: number;
-}) {
+export function generateBoundariesMap(
+  mapInfo: {
+    cols: number;
+    rows: number;
+    tileWidth: number;
+    tileHeight: number;
+  },
+  collisionsData: number[]
+) {
   const boundaries: Boundary[] = [];
   const collisionsMap: number[][] = [];
   // creation collision boundaries on the map
-  for (let i = 0; i < collisions.length; i += mapInfo.cols) {
-    collisionsMap.push(collisions.slice(i, i + mapInfo.cols));
+  for (let i = 0; i < collisionsData.length; i += mapInfo.cols) {
+    collisionsMap.push(collisionsData.slice(i, i + mapInfo.cols));
   }
 
   collisionsMap.forEach((row, i) => {
@@ -199,7 +201,7 @@ export const handleReturnHome = (pageName: string) => {
   // throw return event
   const returnHome = new CustomEvent("returnHome", {
     detail: {
-      page: pageName,
+      fromPage: pageName,
     },
   });
   window.dispatchEvent(returnHome);

@@ -1,16 +1,22 @@
-import { Background, Boundary, Player, InputManager } from "@/classes";
+import { Background, Boundary, Player, InputManager, Npc } from "@/classes";
 import { generateBoundariesMap } from "@/app/utils/Functions";
-import { draw_entry_zones } from "@/app/utils/Boundaries";
+import { collisions, fabion, npcCollisions, panels } from "@/app/data";
+import { entry_zones } from "@/app/utils/Boundaries";
+import { rectangularCollision } from "@/app/utils/Functions";
 
 export default class Game {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   player: Player;
+  npcs: Npc[] = [];
   // static elements
   background: Background | undefined;
   foreground: Background | undefined;
   // collision elements
   boundaries: Boundary[] = [];
+  panelCollisionMap: Boundary[] = [];
+  staticNpcMap: Boundary[] = [];
+
   inputManager: InputManager;
   // object to take track of the key pressed by the user
   keys: { [key: string]: { pressed: boolean; isLast: boolean } } = {
@@ -38,6 +44,7 @@ export default class Game {
   MAX_SCROLL_Y: number;
   // Animation index
   animationId: number = 0;
+  speakingDistance: number = 5;
 
   // TODO: Da valutare se tenere initial position o meno
   constructor(
@@ -64,12 +71,37 @@ export default class Game {
     foregroundImage.src = "/images/assets/portfolio_city_foreground.png";
 
     // creation collision boundaries on the map
-    this.boundaries = generateBoundariesMap({
-      cols: this.MAP_COLS,
-      rows: this.MAP_ROWS,
-      tileWidth: this.TILE_WIDTH,
-      tileHeight: this.TILE_HEIGHT,
-    });
+    this.boundaries = generateBoundariesMap(
+      {
+        cols: this.MAP_COLS,
+        rows: this.MAP_ROWS,
+        tileWidth: this.TILE_WIDTH,
+        tileHeight: this.TILE_HEIGHT,
+      },
+      collisions
+    );
+
+    // creation of panel collision map
+    this.panelCollisionMap = generateBoundariesMap(
+      {
+        cols: this.MAP_COLS,
+        rows: this.MAP_ROWS,
+        tileWidth: this.TILE_WIDTH,
+        tileHeight: this.TILE_HEIGHT,
+      },
+      panels
+    );
+
+    this.staticNpcMap = generateBoundariesMap(
+      {
+        cols: this.MAP_COLS,
+        rows: this.MAP_ROWS,
+        tileWidth: this.TILE_WIDTH,
+        tileHeight: this.TILE_HEIGHT,
+      },
+      npcCollisions
+    );
+
     backgroundImage.onload = () => {
       this.background = new Background(
         0,
@@ -90,6 +122,11 @@ export default class Game {
     // position player on initial position
     if (initialPosition) {
       this.player = new Player(initialPosition);
+      console.log(
+        "initial coordinates in Game class:",
+        initialPosition.x,
+        initialPosition.y
+      );
     } else {
       this.player = new Player({
         x: this.MAP_WIDTH / 2,
@@ -98,6 +135,9 @@ export default class Game {
         direction: "down",
       });
     }
+
+    // initialization of npcs
+    this.initializeNpcs();
 
     // the input manager is a class that manages user input events
     this.inputManager = new InputManager(this.player.isMovementBlocked);
@@ -113,7 +153,7 @@ export default class Game {
   animate = () => {
     // TIMEFRAME FOR ANIMATION: calculate delta time - time between frames
     let currentTime = performance.now();
-    const deltaTime = (currentTime - this.lastTime) / 1000;
+    const deltaTime = Math.min(0.2, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;
 
     // CAMERA MOTION: clamp horizontal and vertical scrolling
@@ -133,29 +173,97 @@ export default class Game {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if (this.background) this.background.draw(this.ctx);
 
-    //------- draw collision boundaries on the map - debug function ------------
-    this.boundaries.forEach((boundary) => {
-      boundary.draw(this.ctx);
-    });
+    //------- draw collision boundaries on the map ------------
+    // this.boundaries.forEach((boundary) => {
+    //   boundary.draw(this.ctx);
+    // });
+
+    // this.panelCollisionMap.forEach((panel) => {
+    //   panel.draw(this.ctx);
+    // });
     // -------------------------------------------------------------------------
 
+    // draw NPc
+    this.npcs.forEach((npc) => {
+      npc.update(deltaTime);
+      npc.draw(this.ctx);
+
+      // Controlla interazione con player
+      if (npc.checkCollision(this.player.hitbox)) {
+        npc.interact("collision");
+        // Puoi bloccare il player o far partire il dialogo
+        this.player.isMovementBlocked = true;
+      }
+    });
+
+    // draw player
     this.player.draw(this.ctx);
     this.inputManager.isPlayerBlocked = this.player.isMovementBlocked;
-    // if (this.player.isMovementBlocked) {
-    //   // block animation frames
-    //   this.animationId = null;
-    //   return;
-    // }
+
     this.animationId = requestAnimationFrame(this.animate);
     this.player.handleUserInput(this.inputManager.keys);
-    this.player.update(deltaTime, this.boundaries);
+    this.player.update(
+      deltaTime,
+      this.boundaries,
+      this.panelCollisionMap,
+      this.staticNpcMap
+    );
+
+    this.checkKayakGameEntry();
 
     this.foreground?.draw(this.ctx);
 
     // draw entry zone for buildings - debug funciton
-    draw_entry_zones(this.ctx);
+    // draw_entry_zones(this.ctx);
     this.ctx.restore();
   };
+
+  // Metodo per controllare ingresso Kayak Game
+  checkKayakGameEntry() {
+    const kayakEntryZone = entry_zones.find(
+      (zone) => zone.page === "kayakGame"
+    );
+    if (
+      kayakEntryZone &&
+      rectangularCollision({
+        rectangle1: this.player.hitbox,
+        rectangle2: kayakEntryZone,
+      })
+    ) {
+      const npcNear = this.npcs.find((npc) => {
+        const distance = Math.hypot(
+          this.player.center.x - (npc.position.x + npc.width / 2),
+          this.player.center.y - (npc.position.y + npc.height / 2)
+        );
+        return distance < this.speakingDistance * this.TILE_WIDTH;
+      });
+
+      if (npcNear) {
+        npcNear.interact("special");
+        // Blocca movimento se necessario
+        this.player.isMovementBlocked = true;
+        cancelAnimationFrame(this.animationId);
+      } else {
+        // Se nessun NPC vicino, evento generico
+        const kayakGameEvent = new CustomEvent("kayakGameEntry");
+        window.dispatchEvent(kayakGameEvent);
+      }
+    }
+  }
+
+  // Metodo per inizializzare NPC
+  initializeNpcs() {
+    const fabionNpc = new Npc({
+      position: { x: 640, y: 1024 },
+      type: "static",
+      dialogues: fabion,
+      spriteUrl: "/images/assets/npc-fabione.png",
+      width: 64,
+      height: 64,
+    });
+
+    this.npcs.push(fabionNpc);
+  }
 
   resizeListener() {
     window.addEventListener("resize", () => {
@@ -175,7 +283,9 @@ export default class Game {
 
   handleBoxClosing = () => {
     // resume animation loop
+    console.log("back to game");
     this.animate();
+
     this.player.isMovementBlocked = false;
     switch (this.player.walkDirection) {
       case "left":
@@ -199,7 +309,6 @@ export default class Game {
         this.player.y = this.player.y - this.player.height / 2;
         this.player.currentSprite = this.player.sprites.walkUp;
         this.player.currentSprite.frameCount = 1;
-        console.log("back at position ", this.player.y);
         break;
     }
   };
@@ -211,36 +320,46 @@ export default class Game {
 
   handleReturnHome = () => {
     this.player.isMovementBlocked = false;
-    switch (this.player.walkDirection) {
-      case "left":
-        // player shift to the right at same y
-        this.player.x = this.player.x + this.player.width / 2;
-        this.player.currentSprite = this.player.sprites.walkRight;
-        this.player.currentSprite.frameCount = 3;
-        break;
-      case "right":
-        this.player.x = this.player.x - this.player.width / 2;
-        this.player.currentSprite = this.player.sprites.walkLeft;
-        this.player.currentSprite.frameCount = 2;
-        break;
-      case "up":
-        this.player.y = this.player.y + this.player.height / 2;
-        // spawn it facing the opposite direction
-        this.player.currentSprite = this.player.sprites.walkDown;
-        this.player.currentSprite.frameCount = 0;
-        break;
-      case "down":
-        this.player.y = this.player.y - this.player.height / 2;
-        this.player.currentSprite = this.player.sprites.walkUp;
-        this.player.currentSprite.frameCount = 1;
-        break;
-    }
   };
 
+  handlePanelActivation = () => {
+    cancelAnimationFrame(this.animationId);
+  };
+
+  handleNpcinteraction = (e: CustomEvent) => {
+    cancelAnimationFrame(this.animationId);
+    // // stop the player in 0 position
+    // switch (e.detail.direction) {
+    //   case "right":
+    //     console.log("player is coming from right");
+    //     this.player.x = this.player.x + this.speakingDistance;
+    //     this.player.currentSprite = this.player.sprites.walkLeft;
+    //     this.player.currentSprite.frameCount = 2;
+
+    //     break;
+    // }
+  };
   // method that listens to all game events
   gameEventListener() {
     window.addEventListener("boxClosing", this.handleBoxClosing);
     window.addEventListener("buildingEntrance", this.handleBuildEntrance);
     window.addEventListener("returnHome", this.handleReturnHome);
+    window.addEventListener("panelActivation", this.handlePanelActivation);
+    window.addEventListener(
+      "npcInteraction",
+      this.handleNpcinteraction as EventListener
+    );
+  }
+
+  destroy() {
+    window.removeEventListener("boxClosing", this.handleBoxClosing);
+    window.removeEventListener("buildingEntrance", this.handleBuildEntrance);
+    window.removeEventListener("returnHome", this.handleReturnHome);
+    window.removeEventListener("panelActivation", this.handlePanelActivation);
+    window.removeEventListener(
+      "npcInteraction",
+      this.handleNpcinteraction as EventListener
+    );
+    cancelAnimationFrame(this.animationId);
   }
 }

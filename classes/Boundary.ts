@@ -2,16 +2,21 @@ export default class Boundary {
   position: { x: number; y: number };
   width: number;
   height: number;
-  color: string = "rgba(255, 0, 0, 0.5)";
+  color: string = "rgba(255, 0, 0, 0)";
+  name: string = "boundary";
 
   constructor(
     box: { x: number; y: number; width: number; height: number },
-    color: string = "rgba(255, 0, 0, 0.5)"
+    color: string = "rgba(255, 0, 0, 0)",
+    name?: string
   ) {
     this.position = { x: box.x, y: box.y };
     this.width = box.width;
     this.height = box.height;
     this.color = color;
+    if (name) {
+      this.name = name;
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D) {
