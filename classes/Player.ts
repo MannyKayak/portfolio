@@ -237,12 +237,7 @@ export default class Player {
     return { collision: false, panel: "" };
   }
 
-  update(
-    deltaTime: number,
-    boundaries: Boundary[],
-    panels: Boundary[],
-    staticNpgMap: Boundary[]
-  ) {
+  update(deltaTime: number, boundaries: Boundary[], panels: Boundary[]) {
     if (this.isMovementBlocked) return;
     // Update player position based on keyboard input
     this.center = {
@@ -281,26 +276,26 @@ export default class Player {
     }
 
     // interaction with npc
-    if (this.detectHorizontalCollision(staticNpgMap)) {
-      this.x = previousX;
-      this.velocity.x = 0;
-      this.currentFrame = 0;
-      this.emitInteractionEvent({
-        type: "horizontal",
-        direction: "right",
-        method: "collision",
-      });
-    }
-    if (this.detectVerticalCollision(staticNpgMap)) {
-      this.y = previousY;
-      this.velocity.y = 0;
-      this.currentFrame = 0;
-      this.emitInteractionEvent({
-        type: "vertical",
-        direction: "up",
-        method: "collision",
-      });
-    }
+    // if (this.detectHorizontalCollision(staticNpgMap)) {
+    //   this.x = previousX;
+    //   this.velocity.x = 0;
+    //   this.currentFrame = 0;
+    //   this.emitInteractionEvent({
+    //     type: "horizontal",
+    //     direction: "right",
+    //     method: "collision",
+    //   });
+    // }
+    // if (this.detectVerticalCollision(staticNpgMap)) {
+    //   this.y = previousY;
+    //   this.velocity.y = 0;
+    //   this.currentFrame = 0;
+    //   this.emitInteractionEvent({
+    //     type: "vertical",
+    //     direction: "up",
+    //     method: "collision",
+    //   });
+    // }
     // check if player collide with a panel
     const panelCollisionObj = this.detectPanelCollision(panels);
     if (panelCollisionObj.collision) {
@@ -333,12 +328,12 @@ export default class Player {
     }
   }
 
-  emitInteractionEvent = (interactionDetails: InteractionDetails) => {
-    const npcInteraction = new CustomEvent("npcInteraction", {
-      detail: interactionDetails,
-    });
-    window.dispatchEvent(npcInteraction);
-  };
+  //   emitInteractionEvent = (interactionDetails: InteractionDetails) => {
+  //     const npcInteraction = new CustomEvent("npcInteraction", {
+  //       detail: interactionDetails,
+  //     });
+  //     window.dispatchEvent(npcInteraction);
+  //   };
 
   draw(ctx: CanvasRenderingContext2D) {
     if (!this.loaded) return;

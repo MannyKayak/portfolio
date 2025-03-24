@@ -3,6 +3,7 @@ import { generateBoundariesMap } from "@/app/utils/Functions";
 import { collisions, fabion, npcCollisions, panels } from "@/app/data";
 import { entry_zones } from "@/app/utils/Boundaries";
 import { rectangularCollision } from "@/app/utils/Functions";
+import { TfiControlShuffle } from "react-icons/tfi";
 
 export default class Game {
   canvas: HTMLCanvasElement;
@@ -183,17 +184,10 @@ export default class Game {
     // });
     // -------------------------------------------------------------------------
 
-    // draw NPc
-    this.npcs.forEach((npc) => {
-      npc.update(deltaTime);
-      npc.draw(this.ctx);
+    // Draw NPCs and check for interactions
 
-      // Controlla interazione con player
-      if (npc.checkCollision(this.player.hitbox)) {
-        npc.interact("collision");
-        // Puoi bloccare il player o far partire il dialogo
-        this.player.isMovementBlocked = true;
-      }
+    this.npcs.forEach((npc) => {
+      npc.draw(this.ctx);
     });
 
     // draw player
@@ -201,13 +195,18 @@ export default class Game {
     this.inputManager.isPlayerBlocked = this.player.isMovementBlocked;
 
     this.animationId = requestAnimationFrame(this.animate);
-    this.player.handleUserInput(this.inputManager.keys);
-    this.player.update(
-      deltaTime,
-      this.boundaries,
-      this.panelCollisionMap,
-      this.staticNpcMap
-    );
+    if (!this.player.isMovementBlocked)
+      this.player.handleUserInput(this.inputManager.keys);
+    this.player.update(deltaTime, this.boundaries, this.panelCollisionMap);
+    this.npcs.forEach((npc) => {
+      if (npc.checkCollision(this.player.hitbox)) {
+        this.player.isMovementBlocked = true;
+        npc.turnTowardsPlayer({ x: this.player.x, y: this.player.y });
+        npc.interact("collision");
+      }
+      npc.update(deltaTime);
+      this.player.isMovementBlocked = false;
+    });
 
     this.checkKayakGameEntry();
 
@@ -258,8 +257,7 @@ export default class Game {
       type: "static",
       dialogues: fabion,
       spriteUrl: "/images/assets/npc-fabione.png",
-      width: 64,
-      height: 64,
+      debug: true,
     });
 
     this.npcs.push(fabionNpc);
@@ -327,17 +325,9 @@ export default class Game {
   };
 
   handleNpcinteraction = (e: CustomEvent) => {
-    cancelAnimationFrame(this.animationId);
-    // // stop the player in 0 position
-    // switch (e.detail.direction) {
-    //   case "right":
-    //     console.log("player is coming from right");
-    //     this.player.x = this.player.x + this.speakingDistance;
-    //     this.player.currentSprite = this.player.sprites.walkLeft;
-    //     this.player.currentSprite.frameCount = 2;
-
-    //     break;
-    // }
+    console.log("NPC interaction", e.detail);
+    // stop player movement animation
+    this.player.isMovementBlocked = true;
   };
   // method that listens to all game events
   gameEventListener() {

@@ -8,6 +8,12 @@ export default {
   ],
   theme: {
     extend: {
+      fontSize: {
+        "card-size": "var(--card-text-size)",
+      },
+      animation: {
+        "bounce-slow": "bounce 3s infinite ease-in-out",
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

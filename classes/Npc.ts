@@ -5,95 +5,64 @@ interface Position {
   y: number;
 }
 
+interface Dialogues {
+  collision?: string[];
+  special?: string[];
+}
+
 interface NpcOptions {
   position: Position;
-  type: "static" | "mobile";
-  path?: Position[];
-  dialogues: {
-    collision?: string[];
-    special?: string[];
-  };
-  width?: number;
-  height?: number;
+  type: "static" | "dynamic";
+  dialogues?: Dialogues;
   spriteUrl: string;
+  staticDimensions?: { width: number; height: number };
+  debug?: boolean;
+  anticipationPixels?: number;
 }
 
 export default class Npc {
   position: Position;
   width: number;
   height: number;
-  dialogues: {
-    collision: string[];
-    special: string[];
-  };
-  type: "static" | "mobile";
-  path?: Position[];
-  currentPathIndex: number;
-  speed: number;
-  hitbox: { position: Position; width: number; height: number };
-  currentFrame: number;
-  sprite: HTMLImageElement;
-  loaded: boolean;
+  velocity = { x: 0, y: 0 };
+  image = new Image();
+  loaded = false;
+  type: "static" | "dynamic";
+  debug: boolean;
+  anticipationPixels: number;
 
-  constructor(npcOptions: {
-    position: Position;
-    type: "static" | "mobile";
-    dialogues: Dialogues;
-    spriteUrl: string;
-    path?: Position[];
-    width: number;
-    height: number;
-  }) {
-    this.position = npcOptions.position;
-    this.width = npcOptions.width;
-    this.height = npcOptions.height;
-    this.dialogues = {
-      collision: npcOptions.dialogues.collision || [],
-      special: npcOptions.dialogues.special || [],
-    };
-    this.currentFrame = 0;
+  currentDirection: "down" | "up" | "left" | "right" = "down";
+  currentFrame = 0;
+  elapsedTime = 0;
+  frameInterval = 0.2;
+
+  hitbox: { position: Position; width: number; height: number; show: boolean };
+
+  dialogues: Dialogues;
+
+  constructor(options: NpcOptions) {
+    this.position = options.position;
+    this.type = options.type;
+    this.debug = options.debug || false;
+    this.anticipationPixels = options.anticipationPixels || 8;
+
+    this.width = options.staticDimensions?.width || 64;
+    this.height = options.staticDimensions?.height || 64;
 
     this.hitbox = {
-      position: { x: this.position.x, y: this.position.y },
-      width: this.width * 0.8,
-      height: this.height * 0.9,
+      position: {
+        x: this.position.x + this.width * 0.1 - this.anticipationPixels,
+        y: this.position.y + this.height * 0.1 - this.anticipationPixels,
+      },
+      width: this.width * 0.8 + this.anticipationPixels * 2,
+      height: this.height * 0.8 + this.anticipationPixels * 2,
+      show: this.debug,
     };
 
-    this.speed = 100;
-    this.type = npcOptions.type;
-    this.path =
-      npcOptions.type === "mobile" && npcOptions.path ? npcOptions.path : [];
-    this.currentPathIndex = 0;
+    this.dialogues = options.dialogues || { collision: [], special: [] };
 
-    this.sprite = new Image();
-    this.loaded = false;
-    this.sprite.onload = () => {
-      this.loaded = true;
-    };
-    this.sprite.src = npcOptions.spriteUrl;
-  }
-
-  update(deltaTime: number) {
-    if (this.path && this.type === "mobile") {
-      this.moveAlongPath(deltaTime);
-    }
-  }
-
-  moveAlongPath(deltaTime: number) {
-    if (!this.path || this.path.length === 0) return;
-
-    const target = this.path[this.currentPathIndex];
-    const dx = target.x - this.position.x;
-    const dy = target.y - this.position.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    if (distance < 1) {
-      this.currentPathIndex = (this.currentPathIndex + 1) % this.path.length;
-    } else {
-      this.position.x += (dx / distance) * this.speed * deltaTime;
-      this.position.y += (dy / distance) * this.speed * deltaTime;
-      this.hitbox.position = { x: this.position.x, y: this.position.y };
-    }
+    this.image.src = options.spriteUrl;
+    this.image.onload = () => (this.loaded = true);
   }
 
   checkCollision(playerHitbox: {
@@ -110,27 +79,70 @@ export default class Npc {
   interact(eventType: "collision" | "special") {
     const dialogues = this.dialogues[eventType];
     if (dialogues && dialogues.length > 0) {
-      const dialogueEvent = new CustomEvent("npcDialogue", {
-        detail: { dialogues, type: eventType },
-      });
-      console.log(dialogues, eventType);
-      window.dispatchEvent(dialogueEvent);
+      window.dispatchEvent(
+        new CustomEvent("npcDialogue", {
+          detail: { dialogues },
+        })
+      );
     }
+  }
+
+  detectPlayerCollisionSide(
+    playerPosition: Position
+  ): "down" | "up" | "left" | "right" | null {
+    const dx = playerPosition.x - this.position.x;
+    const dy = playerPosition.y - this.position.y;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? "right" : "left";
+    } else if (Math.abs(dy) > Math.abs(dx)) {
+      return dy > 0 ? "down" : "up";
+    }
+
+    return null;
+  }
+
+  turnTowardsPlayer(playerPosition: Position) {
+    const side = this.detectPlayerCollisionSide(playerPosition);
+    if (side) {
+      this.currentDirection = side;
+    }
+  }
+
+  showHitbox(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "rgba(0,0,255,0.3)";
+    ctx.fillRect(
+      this.hitbox.position.x,
+      this.hitbox.position.y,
+      this.hitbox.width,
+      this.hitbox.height
+    );
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     if (!this.loaded) return;
 
+    const directions = { down: 0, up: 1, left: 2, right: 3 };
+    const directionIndex = directions[this.currentDirection];
+
     ctx.drawImage(
-      this.sprite,
+      this.image,
+      64 * directionIndex,
       0,
-      this.height * this.currentFrame,
-      this.width,
-      this.height,
+      64,
+      64,
       this.position.x,
       this.position.y,
       this.width,
       this.height
     );
+
+    if (this.hitbox.show) {
+      this.showHitbox(ctx);
+    }
+  }
+
+  update(deltaTime: number) {
+    // Add dynamic NPC movement logic here if required
   }
 }
