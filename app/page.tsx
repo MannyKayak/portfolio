@@ -2,11 +2,14 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DndContext } from "@dnd-kit/core";
+import { DragEndEvent } from "@dnd-kit/core";
 
 import { Game } from "@/classes";
 import { useGameContext } from "./context/GameContext";
 import PanelBox from "@/components/PanelBox";
 import DialogBox from "@/components/DialogBox";
+import UiPanel from "@/components/UiPanel";
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -17,6 +20,10 @@ export default function Home() {
   const [panel, setPanel] = useState<string | null>(null);
   const [npcDialog, setNpcDialog] = useState<string[] | null>(null);
   const [npcDialogIndex, setNpcDialogIndex] = useState<number>(0);
+  const [uiPanelPosition, setUiPanelPosition] = useState({
+    x: innerWidth - innerHeight * 0.9,
+    y: innerHeight - innerHeight * 0.9,
+  });
 
   const { playerPosition, updatePlayerPosition } = useGameContext();
   const router = useRouter();
@@ -53,6 +60,15 @@ export default function Home() {
     setPanel(null);
     window.dispatchEvent(boxClosing);
   };
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { delta } = event;
+
+    setUiPanelPosition((prev) => ({
+      x: prev.x + delta.x,
+      y: prev.y + delta.y,
+    }));
+  }
 
   useEffect(() => {
     const handleEntrance = (e: CustomEvent) => {
@@ -112,21 +128,26 @@ export default function Home() {
   }, [canvasRef]);
 
   return (
-    <div className="fixed m-0 justify-center items-center bg-black">
-      <canvas ref={canvasRef} className="bg-slate-300" />
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="fixed m-0 justify-center items-center bg-black">
+        {currentBuilding && (
+          <DialogBox
+            message={currentBuilding.message}
+            handlePress={handleBox}
+          />
+        )}
 
-      {currentBuilding && (
-        <DialogBox message={currentBuilding.message} handlePress={handleBox} />
-      )}
+        <UiPanel position={uiPanelPosition} />
+        {panel && <PanelBox panelName={panel} handlePress={handlePanel} />}
 
-      {panel && <PanelBox panelName={panel} handlePress={handlePanel} />}
-
-      {npcDialog && (
-        <DialogBox
-          message={npcDialog[npcDialogIndex]}
-          handlePress={handleBox}
-        />
-      )}
-    </div>
+        {npcDialog && (
+          <DialogBox
+            message={npcDialog[npcDialogIndex]}
+            handlePress={handleBox}
+          />
+        )}
+        <canvas ref={canvasRef} className="bg-slate-300" />
+      </div>
+    </DndContext>
   );
 }

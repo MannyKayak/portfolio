@@ -1,9 +1,204 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaHome } from "react-icons/fa";
 
+class Car {
+  static speed: number = 5;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shiftSpeed: number = 5;
+  centralBorderLeft: number;
+  centralBorderRight: number;
+
+  constructor(
+    initialPosition: { x: number; y: number },
+    width: number,
+    height: number
+  ) {
+    this.x = initialPosition.x;
+    this.y = initialPosition.y;
+    this.width = width;
+    this.height = height;
+
+    this.centralBorderLeft = window.innerWidth / 2 - this.width / 2;
+    this.centralBorderRight = window.innerWidth / 2 + this.width / 2;
+    this.mouseListener();
+  }
+
+  mouseListener() {
+    window.addEventListener("mousemove", (e) => {
+      if (e.clientX < this.centralBorderLeft) {
+        this.shiftSpeed = -Car.speed;
+      } else if (e.clientX > this.centralBorderRight) {
+        this.shiftSpeed = Car.speed;
+      } else {
+        this.shiftSpeed = 0;
+      }
+    });
+  }
+
+  detectScreenBorders() {
+    if (this.x + this.width >= window.innerWidth || this.x <= 0) {
+      return true;
+    }
+    return false;
+  }
+  update() {
+    const prevX = this.x;
+    if (this.detectScreenBorders()) {
+      this.x = prevX;
+    }
+    this.x += this.shiftSpeed;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+class Obstacle {
+  static zeroHeight: number = 100;
+  static zeroWidth: number = 40;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+
+  constructor(initialPosition: { x: number; y: number }) {
+    this.x = initialPosition.x;
+    this.y = initialPosition.y;
+    this.width = Obstacle.zeroWidth;
+    this.height = Obstacle.zeroHeight;
+  }
+
+  update() {
+    this.y += 5;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "blue";
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+class Background {
+  canvas: HTMLCanvasElement;
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    // background
+    ctx.fillStyle = "green";
+    ctx.fillRect(
+      0,
+      this.canvas.height - 300,
+      this.canvas.width,
+      this.canvas.height
+    );
+
+    // road
+    ctx.beginPath();
+    ctx.strokeStyle = "gray";
+    ctx.moveTo((this.canvas.width * 2) / 5, this.canvas.height - 300);
+    ctx.lineTo((this.canvas.width * 3) / 5, this.canvas.height - 300);
+    ctx.lineTo((this.canvas.width * 4) / 5, this.canvas.height);
+    ctx.lineTo((this.canvas.width * 1) / 5, this.canvas.height);
+    ctx.fillStyle = "gray";
+    ctx.fill();
+    ctx.closePath();
+    ctx.stroke();
+  }
+}
+
+class AboutMeGame {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  playerWidth: number;
+  playerHeight: number;
+  playerX: number;
+  playerY: number;
+  car: Car;
+  obstacle: Obstacle;
+  background: Background;
+  isRaceStarted: boolean = false;
+  animationFrameId: number = 0;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
+    this.playerWidth = 100;
+    this.playerHeight = 50;
+
+    this.playerX = this.canvas.width / 2 - this.playerWidth / 2;
+    this.playerY = this.canvas.height - 150;
+
+    // this.isRaceStarted = false;
+    this.car = new Car(
+      { x: this.playerX, y: this.playerY },
+      this.playerWidth,
+      this.playerHeight
+    );
+
+    this.obstacle = new Obstacle({
+      x: this.canvas.width / 2,
+      y: this.canvas.height - 400,
+    });
+
+    this.background = new Background(this.canvas);
+    this.background.draw(this.ctx);
+    this.car.draw(this.ctx);
+    this.obstacle.draw(this.ctx);
+    this.raceEventListener();
+  }
+
+  animate() {
+    if (!this.isRaceStarted) return;
+    console.log("animating");
+    // this.car.update();
+    this.obstacle.update();
+
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.background.draw(this.ctx);
+    this.car.draw(this.ctx);
+    this.obstacle.draw(this.ctx);
+    this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
+  }
+
+  raceEventListener() {
+    const handleRaceEvent = (e: CustomEvent) => {
+      console.log(e.detail.raceStatus);
+
+      if (e.detail.raceStatus) {
+        this.isRaceStarted = true;
+        this.animate();
+      } else {
+        this.isRaceStarted = false;
+        cancelAnimationFrame(this.animationFrameId);
+      }
+    };
+
+    window.addEventListener("raceEvent", handleRaceEvent as EventListener);
+  }
+
+  destroy() {
+    window.removeEventListener("raceEvent", () => {});
+  }
+}
+
 export default function AboutMe() {
+  const raceGameRef = useRef<HTMLCanvasElement | null>(null);
+  const [showOptions, setShowOptions] = useState<boolean>(false);
+  const [isRaceStarted, setRaceStarted] = useState<boolean>(false);
   const handleReturnHome = () => {
     // throw return event
     const returnHome = new CustomEvent("returnHome", {
@@ -13,147 +208,56 @@ export default function AboutMe() {
     });
     window.dispatchEvent(returnHome);
   };
+
+  const launchStartStopGameEvent = () => {
+    setRaceStarted(!isRaceStarted);
+    const raceStarted = new CustomEvent("raceEvent", {
+      detail: { raceStatus: !isRaceStarted },
+    });
+    window.dispatchEvent(raceStarted);
+  };
+
+  useEffect(() => {
+    if (raceGameRef.current) {
+      new AboutMeGame(raceGameRef.current);
+    } else {
+      throw new Error("Canvas element not found");
+    }
+  }, []);
   return (
-    <div className="container mx-auto px-4 py-8 ">
-      <Link
-        href={"/"}
-        className="fixed bottom-10 right-10 bg-slate-400 p-5 rounded-full shadow-md"
+    <div className="bg-teal-200 ">
+      <button
+        onClick={() => setShowOptions(!showOptions)}
+        className="absolute bottom-10 right-10 bg-slate-700 shadow-slate-950 shadow-md rounded-full"
       >
-        <FaHome
-          onClick={handleReturnHome}
-          className=" flex text-white text-lg size-10"
-        />
-      </Link>
-      {/* Header */}
-      <header className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">
-          My Journey: From the Olympics to Web Development
-        </h1>
-        <p className="text-xl text-gray-600">
-          A Story of Dedication and Transformation
-        </p>
-      </header>
-
-      {/* Sezione 1: Olympic Experiences */}
-      <section className="flex flex-col md:flex-row items-center bg-white rounded-lg shadow-md overflow-hidden mb-8">
-        <div className="md:w-1/2">
-          <Image
-            src="/images/tokyo2021.jpg"
-            alt="Tokyo 2016 Olympics"
-            width={600}
-            height={400}
-            className="object-cover"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="white"
+          className="size-10 m-2"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
           />
-        </div>
-        <div className="md:w-1/2 p-6">
-          <h2 className="text-2xl font-semibold mb-4">Olympic Experiences</h2>
-          <p className="mb-4">
-            For many athletes, the Olympics isn’t just an event it’s a dream you
-            carry with you forever. I was lucky enough to live that dream not
-            once, but twice. Both the Rio 2016 and Tokyo 2020 Games have left a
-            lasting impact on my life and my journey in sports. I still remember
-            my first Olympic experience in Rio 2016. The whole atmosphere was
-            electric, and every moment buzzed with adrenaline and determination.
-            Even though I didn’t come home with a medal, that experience pushed
-            me to keep training and improve every day. Then came Tokyo 2020.
-            Winning the silver medal there was more than just a personal triumph
-            it was the payoff after years of hard work, sacrifice, and pure
-            dedication.
-          </p>
-          <p className="mb-4">
-            The Rio 2016 Olympics were my first time participating in this
-            global event. The excitement was palpable, and every moment was
-            filled with adrenaline and determination. Although I didn't win a
-            medal, the experience motivated me to keep working hard and improve
-            my performance.
-          </p>
-          <p>
-            My determination paid off at Tokyo 2020, where I had the honor of
-            winning the silver medal. This achievement was the culmination di
-            anni di duro lavoro, sacrifici e dedizione.
-          </p>
-        </div>
-      </section>
+        </svg>
 
-      {/* Sezione 2: Academic Background */}
-      <section className="flex flex-col md:flex-row items-center bg-white rounded-lg shadow-md overflow-hidden mb-8">
-        {/* Per alternare l'ordine, usiamo "order" */}
-        <div className="md:w-1/2 p-6 order-2 md:order-1">
-          <h2 className="text-2xl font-semibold mb-4">Academic Background</h2>
-          <p>
-            I've always believed that education is just as important as sports.
-            I earned my master's degree in Materials Engineering at the
-            Politecnico di Milano a journey that not only gave me a rock-solid
-            scientific and technical foundation but also sharpened my analytical
-            and problem-solving skills. Balancing intense training sessions with
-            demanding studies wasn’t easy. There were times when the pressure
-            felt overwhelming, but thanks to the unwavering support of my family
-            and the encouragement of my teammates, I managed to push through and
-            come out stronger on both fronts.
-          </p>
-        </div>
-        <div className="md:w-1/2 order-1 md:order-2">
-          <Image
-            src="/images/studio.jpg"
-            alt="Academic Background"
-            width={600}
-            height={400}
-            className="object-cover"
-          />
-        </div>
-      </section>
+        {showOptions && (
+          <div className="absolute bottom-full right-0 mb-2 bg-slate-400 p-4 rounded-lg shadow-md whitespace-nowrap">
+            <Link href="/">
+              <div className="text-white text-lg">Return Home</div>
+            </Link>
+            <div onClick={launchStartStopGameEvent}>
+              {isRaceStarted ? "Stop Game" : "Start Game"}
+            </div>
+          </div>
+        )}
+      </button>
 
-      {/* Sezione 3: Passion for Coding */}
-      <section className="flex flex-col md:flex-row items-center bg-white rounded-lg shadow-md overflow-hidden mb-8">
-        <div className="md:w-1/2">
-          <Image
-            src="/images/tedx.jpg"
-            alt="Passion for Coding"
-            width={600}
-            height={400}
-            className="object-cover"
-          />
-        </div>
-        <div className="md:w-1/2 p-6">
-          <h2 className="text-2xl font-semibold mb-4">Passion for Coding</h2>
-          <p>
-            After earning my degree, I discovered a whole new world in web
-            development and coding. I started out with a few online courses in
-            C, Python, and JavaScript, and quickly realized that coding wasn't
-            just another skill; it was a gateway to endless creative
-            possibilities. Over the past five years, I've also had fun
-            experimenting with Solidity for blockchain projects and tinkering
-            with Arduino on personal projects. It's been an exciting journey,
-            and I'm hopeful that with time and dedication, this newfound passion
-            will turn into my next career.
-          </p>
-        </div>
-      </section>
-
-      {/* Sezione 4: Embracing the Future */}
-      <section className="flex flex-col md:flex-row items-center bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="md:w-1/2 p-6 order-2 md:order-1">
-          <h2 className="text-2xl font-semibold mb-4">Embracing the Future</h2>
-          <p>
-            In conclusion, my journey from Olympic athlete to engineer and
-            aspiring web developer has been marked by challenges, successes, and
-            transformations. Each phase of my life has taught me valuable
-            lessons and helped me grow as an individual. I'm excited to see
-            where my next chapter will take me, and I'm ready to face new
-            challenges with the same tenacity and perseverance that have
-            accompanied me so far.
-          </p>
-        </div>
-        <div className="md:w-1/2 order-1 md:order-2">
-          <Image
-            src="/images/canoa.jpg"
-            alt="Embracing the Future"
-            width={600}
-            height={400}
-            className="object-cover"
-          />
-        </div>
-      </section>
+      <canvas ref={raceGameRef} />
     </div>
   );
 }

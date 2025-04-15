@@ -1,4 +1,5 @@
 import { Boundary } from "@/classes";
+import { DragEndEvent } from "@dnd-kit/core";
 
 export function rectangularCollision({
   rectangle1,
