@@ -1,0 +1,35 @@
+[
+  {
+    "pos": { "x": 0, "y": 350 },
+    "thumbnail": "clean-steps",
+    "data": {
+      "title": "Reddit custom post minigame.",
+      "links": [
+        {
+          "id": 0,
+          "name": "Live Demo",
+          "link": "https://www.reddit.com/r/devvittest01/"
+        },
+        {
+          "id": 1,
+          "name": "Source Code",
+          "link": "https://github.com/MannyKayak/cleansteps"
+        }
+      ]
+    }
+  },
+  {
+    "pos": { "x": 0, "y": 840 },
+    "thumbnail": "arduino",
+    "data": {
+      "title": "Arduino devices accelerometer and kinetic traker",
+      "links": [
+        {
+          "id": 1,
+          "name": "Source Code",
+          "link": "https://github.com/MannyKayak/dragster-tech"
+        }
+      ]
+    }
+  }
+]

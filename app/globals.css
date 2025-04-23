@@ -2,10 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --card-text-size: 0.5rem;
+  --color1: #272946;
+  --color2: #aaea6c;
+  --color3: #e7ffee;
+  --color4: #3f416c;
+}
+body,
+html {
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color1);
+}
+
+@font-face {
+  font-family: "gameboy-font";
+  src: url(/fonts/EarlyGameBoy.ttf);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,8 +43,4 @@ body {
   color: var(--foreground);
   background: var(--background);
   /* font-family: Arial, Helvetica, sans-serif; */
-}
-
-.gameButtonStyle {
-  @apply px-4 py-2 bg-white text-black border-4 border-black hover:bg-gray-400;
 }
