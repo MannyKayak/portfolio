@@ -1,4 +1,3 @@
-
 uniform float u_time;
 uniform vec3 u_color1;
 uniform vec3 u_color2;

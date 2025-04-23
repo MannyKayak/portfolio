@@ -1,22 +1,22 @@
 uniform float u_time;
-
-float circle(vec2 uv, vec2 pos, float radius) {
-    return smoothstep(radius, radius - 0.01, length(uv - pos));
-}
+uniform vec3 u_color1;
+uniform vec3 u_color2;
+uniform vec2 u_speed;
+uniform float u_aspect;
+uniform float u_size;
 
 vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
-    vec2 u = uv;
-    u.y += 0.05 * sin(u_time * 0.2);
-
-    vec3 sky = vec3(0.5, 0.7, 1.0);
-    vec3 white = vec3(1.0);
-
-    float c = 0.0;
-    c += circle(u, vec2(0.3, 0.6), 0.3);
-    c += circle(u, vec2(0.4, 0.6), 0.3);
-    c += circle(u, vec2(0.35, 0.65), 0.3);
-
-    vec3 finalColor = mix(sky, white, clamp(c, 0.0, 1.0));
-
-    return vec4(finalColor, 1.0);
+    uv = (uv + vec2(u_time) * u_speed) * vec2(u_aspect, 1.0);
+    float total = floor(uv.x * u_size) + floor(uv.y * u_size);
+    bool isEven = mod(total, 2.0) == 0.0;
+    vec4 col1 = vec4(u_color1 / 255.0, 1.0);
+    vec4 col2 = vec4(u_color2 / 255.0, 1.0);
+    return (isEven) ? col1 : col2;
 }
+
+uniform float u_time;
+uniform vec3 u_color1;
+uniform vec3 u_color2;
+uniform vec2 u_speed;
+uniform float u_aspect;
+uniform float u_size;
