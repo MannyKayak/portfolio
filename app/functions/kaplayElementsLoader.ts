@@ -48,9 +48,12 @@ export default function kaplayElementsLoader(k: KAPLAYCtx) {
   k.loadSprite("python-logo", "./logos/python-logo.png");
   k.loadSprite("email-logo", "./logos/email-logo.png");
   k.loadSprite("instagram-logo", "./logos/instagram-logo.png");
+  k.loadSprite("payload-logo", "./logos/payload-logo.png");
   // project screenshots
   k.loadSprite("clean-steps", "./projects/cleansteps.png");
   k.loadSprite("arduino", "./projects/arduino.jpg");
+  k.loadSprite("bimknow", "./projects/bimknow.png");
+  k.loadSprite("dexify", "./projects/dexify.png");
 
   // shader
   k.loadShaderURL("backgroundPattern", null, "./shaders/pattern.frag");

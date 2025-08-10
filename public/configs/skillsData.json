@@ -71,5 +71,14 @@
       "width": 128,
       "height": 128
     }
+  },
+  {
+    "pos": { "x": -200, "y": 200 },
+    "name": "Payload CMS",
+    "logoData": {
+      "name": "payload-logo",
+      "width": 128,
+      "height": 128
+    }
   }
 ]

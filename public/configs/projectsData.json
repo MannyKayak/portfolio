@@ -1,6 +1,44 @@
 [
   {
     "pos": { "x": 0, "y": 350 },
+    "thumbnail": "bimknow",
+    "data": {
+      "title": "Vittorio Andrea Sellaro site and BIMKnow project.",
+      "links": [
+        {
+          "id": 0,
+          "name": "Site",
+          "link": "https://www.sellarodesigndataknow.it"
+        },
+        {
+          "id": 1,
+          "name": "Source Code",
+          "link": "https://github.com/MannyKayak/sellaro-cms"
+        }
+      ]
+    }
+  },
+  {
+    "pos": { "x": 0, "y": 840 },
+    "thumbnail": "dexify",
+    "data": {
+      "title": "Dexify extension",
+      "links": [
+        {
+          "id": 0,
+          "name": "Extension link",
+          "link": "https://chromewebstore.google.com/detail/dexify/lbnmfmbphophgkohkoplkhaickehipcd"
+        },
+        {
+          "id": 1,
+          "name": "Source Code",
+          "link": "https://github.com/MannyKayak/dexify-extension"
+        }
+      ]
+    }
+  },
+  {
+    "pos": { "x": 0, "y": 1330 },
     "thumbnail": "clean-steps",
     "data": {
       "title": "Reddit custom post minigame.",
@@ -19,7 +57,7 @@
     }
   },
   {
-    "pos": { "x": 0, "y": 840 },
+    "pos": { "x": 0, "y": 1820 },
     "thumbnail": "arduino",
     "data": {
       "title": "Arduino devices accelerometer and kinetic traker",
